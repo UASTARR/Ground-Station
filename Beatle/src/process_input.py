@@ -14,7 +14,7 @@ def process_videos(input_dir, output_dir):
 
     # Iterate over all files in the input directory
     for filename in os.listdir(input_dir):
-        if filename.endswith(".mov") or filename.endswith(".mp4"):  # Adjust for other video formats as needed
+        if filename.endswith(".mov") or filename.endswith(".mp4") or  filename.endswith(".MOV"):  # Adjust for other video formats as needed
             video_path = os.path.join(input_dir, filename)
             print(f"Processing {filename}...")
 
