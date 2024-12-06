@@ -43,6 +43,6 @@ def process_videos(input_dir, output_dir):
 
 if __name__ == "__main__":
     input_folder = "Beatle/db"   # Adjust to your actual path to 'db'
-    output_folder = "Beatle/in"  # Adjust to your actual path to 'in'
+    output_folder = "Beatle/db/images"  # Adjust to your actual path to 'in'
 
     process_videos(input_folder, output_folder)
