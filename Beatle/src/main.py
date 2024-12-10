@@ -26,11 +26,11 @@ model_path = "../models/"
 # Define the path to the dataset YAML file
 data_yaml_path = "../seg/data.yaml"
 
-# Define the list of YOLO model types
+# Define the list of YOLO segmentation model types
 model_types = [
-    'yolov5n', 'yolov5s', 'yolov5m', 'yolov5l', 'yolov5x',
-    'yolov8n', 'yolov8s', 'yolov8m', 'yolov8l', 'yolov8x',
-    'yolo11n', 'yolo11s', 'yolo11m', 'yolo11l', 'yolo11x'
+    'yolov5n-seg', 'yolov5s-seg', 'yolov5m-seg', 'yolov5l-seg', 'yolov5x-seg',
+    'yolov8n-seg', 'yolov8s-seg', 'yolov8m-seg', 'yolov8l-seg', 'yolov8x-seg',
+    'yolo11n-seg', 'yolo11s-seg', 'yolo11m-seg', 'yolo11l-seg', 'yolo11x-seg'
 ]
 
 # Define the list of batch sizes
