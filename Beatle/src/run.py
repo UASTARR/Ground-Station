@@ -1,40 +1,77 @@
 import cv2
+import torch
 from ultralytics import YOLO
-from ultralytics.utils.plotting import Annotator, colors
+import os
 
+def segment_video(video_path, model_path, output_path):
+    # Check if the video file exists
+    if not os.path.exists(video_path):
+        print(f"Video file not found: {video_path}")
+        return
 
-model = YOLO("yolo11n-seg.pt")  # segmentation model
+    # Check if the model file exists
+    if not os.path.exists(model_path):
+        print(f"Model file not found: {model_path}")
+        return
 
-cap = cv2.VideoCapture("/Users/christiaan/Documents/GitHub/STARRGazer/Beatle/db/2024_EGOR.MOV")
-w, h, fps = (int(cap.get(x)) for x in (cv2.CAP_PROP_FRAME_WIDTH, cv2.CAP_PROP_FRAME_HEIGHT, cv2.CAP_PROP_FPS))
+    try:
+        # Load the YOLO model
+        model = YOLO(model_path)
 
-out = cv2.VideoWriter("instance-segmentation-object-tracking.avi", cv2.VideoWriter_fourcc(*"MJPG"), fps, (w, h))
+        # Open the video file
+        video = cv2.VideoCapture(video_path)
+        if not video.isOpened():
+            print(f"Error opening video file: {video_path}")
+            return
 
-while True:
-    ret, im0 = cap.read()
-    if not ret:
-        print("Video frame is empty or video processing has been successfully completed.")
-        break
+        # Get video properties
+        frame_width = int(video.get(cv2.CAP_PROP_FRAME_WIDTH))
+        frame_height = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        fps = int(video.get(cv2.CAP_PROP_FPS))
+        total_frames = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
 
-    annotator = Annotator(im0, line_width=2)
+        # Define the codec and create VideoWriter object
+        output_video = cv2.VideoWriter(
+            output_path, cv2.VideoWriter_fourcc(*'mp4v'), fps, (frame_width, frame_height)
+        )
 
-    results = model.track(im0, persist=True)
+        print(f"Processing video: {video_path}")
 
-    if results[0].boxes.id is not None and results[0].masks is not None:
-        masks = results[0].masks.xy
-        track_ids = results[0].boxes.id.int().cpu().tolist()
+        frame_count = 0
+        while True:
+            ret, frame = video.read()
+            if not ret:
+                break
 
-        for mask, track_id in zip(masks, track_ids):
-            color = colors(int(track_id), True)
-            txt_color = annotator.get_txt_color(color)
-            annotator.seg_bbox(mask=mask, mask_color=color, label=str(track_id), txt_color=txt_color)
+            # Run segmentation on the frame
+            results = model(frame)
 
-    out.write(im0)
-    cv2.imshow("instance-segmentation-object-tracking", im0)
+            # Extract segmented frame
+            segmented_frame = results[0].plot()
 
-    if cv2.waitKey(1) & 0xFF == ord("q"):
-        break
+            # Write the segmented frame to the output video
+            output_video.write(segmented_frame)
 
-out.release()
-cap.release()
-cv2.destroyAllWindows()
+            frame_count += 1
+            print(f"Processed frame {frame_count}/{total_frames}", end='\r')
+
+        # Release resources
+        video.release()
+        output_video.release()
+        print(f"\nSegmentation completed. Output saved to: {output_path}")
+
+    except Exception as e:
+        print(f"Error during video segmentation: {e}")
+
+# Example usage
+if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Run video segmentation using a YOLO model.")
+    parser.add_argument("video_path", type=str, help="Path to the input video file.")
+    parser.add_argument("model_path", type=str, help="Path to the YOLO model file.")
+    parser.add_argument("output_path", type=str, help="Path to save the output segmented video.")
+
+    args = parser.parse_args()
+
+    segment_video(args.video_path, args.model_path, args.output_path)
