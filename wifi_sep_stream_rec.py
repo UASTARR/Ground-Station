@@ -139,98 +139,66 @@ def stream_camera(camera, socket_conn, writer, lock, stop_flag):
 
 def main():
     # Camera Initialization
-    left_camera = CSI_Camera()
-    left_camera.open(
+    camera = CSI_Camera()
+    camera.open(
         gstreamer_pipeline(
             sensor_id=0,
-            capture_width=1920,
-            capture_height=1080,
+            capture_width=1280,
+            capture_height=720,
             flip_method=0,
-            display_width=960,
-            display_height=540,
+            display_width=1280,
+            display_height=720,
         )
     )
-    left_camera.start()
-
-    right_camera = CSI_Camera()
-    right_camera.open(
-        gstreamer_pipeline(
-            sensor_id=1,
-            capture_width=1920,
-            capture_height=1080,
-            flip_method=0,
-            display_width=960,
-            display_height=540,
-        )
-    )
-    right_camera.start()
+    camera.start()
+    print(camera.running)
 
     # Network Initialization
-    BUFFER_SIZE = left_camera.frame.size + right_camera.frame.size
+    BUFFER_SIZE = camera.frame.size
     host = "192.168.1.101"
-    port1, port2 = 3001, 3002
+    port = 3001
 
     try:
-        # Create sockets for left and right cameras
-        s1 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s1.bind((host, port1))
-        s1.listen(1)
+        # Create socket for the camera
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.bind((host, port))
+        s.listen(1)
 
-        s2 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s2.bind((host, port2))
-        s2.listen(1)
-
-        print(f"Waiting for connections on {host}:{port1} and {host}:{port2}")
-        conn1, _ = s1.accept()
-        conn2, _ = s2.accept()
-        print("Clients connected")
+        print(f"Waiting for connection on {host}:{port}")
+        conn, _ = s.accept()
+        print("Client connected")
 
     except Exception as e:
         print(f"Socket setup failed: {e}")
         return
 
     # Video saving
-    # fourcc = cv2.VideoWriter_fourcc(*'XVID')
-    # left_writer = cv2.VideoWriter('left_camera.avi', fourcc, 30.0, (960, 540))
-    # right_writer = cv2.VideoWriter('right_camera.avi', fourcc, 30.0, (960, 540))
-
     fourcc = cv2.VideoWriter_fourcc(*"mp4v")  # Use 'mp4v' for MP4 format
-    left_writer = cv2.VideoWriter("left_camera.mp4", fourcc, 30.0, (960, 540))
-    right_writer = cv2.VideoWriter("right_camera.mp4", fourcc, 30.0, (960, 540))
+    writer = cv2.VideoWriter("camera.mp4", fourcc, 30.0, (1280, 720))
 
     # Thread control
     stop_flag = {"stop": False}
-    lock1 = threading.Lock()
-    lock2 = threading.Lock()
+    lock = threading.Lock()
 
-    # Start streaming threads
-    left_thread = threading.Thread(
-        target=stream_camera, args=(left_camera, conn1, left_writer, lock1, stop_flag)
+    # Start streaming thread
+    stream_thread = threading.Thread(
+        target=stream_camera, args=(camera, conn, writer, lock, stop_flag)
     )
-    right_thread = threading.Thread(
-        target=stream_camera, args=(right_camera, conn2, right_writer, lock2, stop_flag)
-    )
-    left_thread.start()
-    right_thread.start()
+    stream_thread.start()
 
     try:
         while True:
             time.sleep(1)
     except KeyboardInterrupt:
-        print("Stopping threads...")
+        print("Stopping thread...")
         stop_flag["stop"] = True
 
     # Clean up
-    left_thread.join()
-    right_thread.join()
-    left_camera.stop()
-    left_camera.release()
-    right_camera.stop()
-    right_camera.release()
-    left_writer.release()
-    right_writer.release()
-    conn1.close()
-    conn2.close()
+    stream_thread.join()
+    camera.stop()
+    camera.release()
+    writer.release()
+    conn.close()
 
 
 if __name__ == "__main__":
